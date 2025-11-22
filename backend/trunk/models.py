@@ -15,6 +15,9 @@ class Trip(models.Model):
     route_raw = models.JSONField(null=True, blank=True) 
     route_summary = models.JSONField(null=True, blank=True) 
 
+    hos_plan = models.JSONField(null=True, blank=True)
+    hos_computed_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, default="pending")
 

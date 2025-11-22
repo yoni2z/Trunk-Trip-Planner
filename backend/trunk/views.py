@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from .models import Trip
 from .serializers import TripSerializer
 from .services.routing import geocode_location, get_truck_route
+from .services.hos_planner import plan_hos_compliant_trip
+from datetime import datetime
 from decimal import Decimal
 import json
 
@@ -76,8 +78,23 @@ class TripViewSet(viewsets.ModelViewSet):
             status="route_calculated"
         )
 
+        total_driving_seconds = route['summary']['duration']  # this is in seconds
+
+        # Run HOS planner
+        hos_result = plan_hos_compliant_trip(
+            total_driving_seconds=int(total_driving_seconds),
+            cycle_used_hours=Decimal(str(request.data['cycle_used_hours']))
+        )
+
+        # Save HOS plan
+        trip.hos_plan = hos_result
+        trip.hos_computed_at = datetime.now()
+        trip.status = "hos_compliant"
+        trip.save()
+
         return Response({
             "trip_id": str(trip.id)[:8].upper(),
             "message": "Route calculated successfully!",
-            "route": route_summary_clean
+            "route": route_summary_clean,
+            "hos": hos_result
         }, status=status.HTTP_201_CREATED)
