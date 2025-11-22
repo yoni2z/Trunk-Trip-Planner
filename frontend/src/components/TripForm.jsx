@@ -11,11 +11,11 @@ export default function TripForm() {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
@@ -47,16 +47,34 @@ export default function TripForm() {
     setSubmitting(true);
     setSubmitted(false);
 
-    // Simulate API call delay
-    setTimeout(() => {
-      console.log("Trip Data Submitted:", {
-        ...formData,
-        cycleUsed: parseFloat(formData.cycleUsed),
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/trips/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          current_location: formData.currentLocation,
+          pickup_location: formData.pickupLocation,
+          dropoff_location: formData.dropoffLocation,
+          cycle_used_hours: parseFloat(formData.cycleUsed),
+        }),
       });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Success:", data);
+        setSubmitted(true);
+        setSubmitMessage(`Trip ID: ${data.trip_id} – ${data.message}`);
+      } else {
+        setErrors({ submit: data.message || "Server error" });
+      }
+    } catch (err) {
+      setErrors({ submit: "Network error – is backend running?" });
+    } finally {
       setSubmitting(false);
-      setSubmitted(true);
-      setTimeout(() => setSubmitted(false), 4000); // Auto-hide success
-    }, 800);
+    }
   };
 
   return (
@@ -165,8 +183,14 @@ export default function TripForm() {
         </button>
 
         {submitted && (
-          <div className="mt-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg text-center">
-            Trip data logged to console! Ready for backend in next step.
+          <div className="mt-6 p-5 bg-green-50 border-2 border-green-300 text-green-800 rounded-lg text-center font-medium">
+            {submitMessage}
+          </div>
+        )}
+
+        {errors.submit && (
+          <div className="mt-6 p-5 bg-red-50 border-2 border-red-300 text-red-800 rounded-lg text-center">
+            {errors.submit}
           </div>
         )}
       </form>
