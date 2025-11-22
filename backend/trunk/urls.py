@@ -7,4 +7,5 @@ router.register(r'trips', TripViewSet, basename='trip')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('trips/<uuid:pk>/print-logs/', TripViewSet.as_view({'get': 'print_logs'}), name='print-logs'),
 ]
