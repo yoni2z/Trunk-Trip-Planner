@@ -1,7 +1,11 @@
 import React from "react";
+import TripForm from "./components/TripForm";
 
 function App() {
-  return <h1 className="text-3xl font-bold underline">Hello world!</h1>;
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <TripForm />
+    </div>
+  );
 }
-
 export default App;
