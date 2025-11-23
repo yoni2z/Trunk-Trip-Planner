@@ -119,96 +119,105 @@ class TripViewSet(viewsets.ModelViewSet):
             if not isinstance(day.get("day"), int):
                 continue
 
-            # Calculate graph positions (FMCSA official scale: 1 hour = 40px)
-            start_hour = 5  # 5 AM
+            start_hour = 5
             pickup_end = start_hour + 1
             driving_start = pickup_end
             driving_end = driving_start + day['driving_hours']
             break_inserted = day.get('includes_30min_break', False)
             break_at = driving_start + 8 if break_inserted else driving_end
-            off_duty_at = 19  # ~14-hour window from 5 AM
+            off_duty_at = start_hour + 14
 
             logs_html += f"""
             <div class="log-page">
-                <div class="header">
-                    <h2>DRIVER'S RECORD OF DUTY STATUS (GRAPH GRID)</h2>
-                    <p class="subtitle">FMCSA Property-Carrying • 70-Hour/8-Day Rule • §395.8</p>
+                <div class="fmsca-header">
+                    <h1>DRIVER'S RECORD OF DUTY STATUS</h1>
+                    <p class="rule">Property-Carrying • 70-Hour/8-Day Rule • §395.8</p>
                 </div>
 
-                <table class="info-table">
-                    <tr><td><strong>Date:</strong> {day['date']}</td><td><strong>24-Hour Period Starting Time:</strong> {day['start_time']}</td></tr>
-                    <tr><td><strong>Driver Name:</strong> _________________________</td><td><strong>Truck/Tractor #: ________ Trailer #: ________</td></tr>
-                    <tr><td><strong>Main Office Address:</strong> {trip.current_location}</td><td><strong>Home Terminal:</strong> {trip.current_location}</td></tr>
-                    <tr><td colspan="2"><strong>Shipping Document # or Trip:</strong> {trip.pickup_location} → {trip.dropoff_location}</td></tr>
+                <table class="info-grid">
+                    <tr><td class="label">Date:</td><td>{day['date']}</td><td class="label">24-Hour Period Starting:</td><td>{day['start_time']}</td></tr>
+                    <tr><td class="label">Driver Name:</td><td colspan="3" class="underline">________________________________________________</td></tr>
+                    <tr><td class="label">Main Office:</td><td>{trip.current_location}</td><td class="label">Home Terminal:</td><td>{trip.current_location}</td></tr>
+                    <tr><td class="label">Trip:</td><td colspan="3">{trip.pickup_location} to {trip.dropoff_location}</td></tr>
                 </table>
 
-                <div class="graph-grid">
-                    <div class="hours-labels">
-                        {"".join(f'<div class="hour" style="left:{40*(i)}px">{i}</div>' for i in range(25))}
+                <div class="graph-container">
+                    <div class="hour-labels">
+                        {"".join(f'<span style="left: calc({i} * 4.1666%)">{i}</span>' for i in range(25))}
                     </div>
-                    <svg width="960" height="200" viewBox="0 0 960 200">
-                        <!-- Grid lines -->
-                        <g stroke="#ccc">
-                            {"".join(f'<line x1="{40*i}" y1="0" x2="{40*i}" y2="200"/>' for i in range(25))}
-                        </g>
-                        <!-- Duty Status Lines (FMCSA exact order) -->
-                        <!-- Line 1: Off Duty -->
-                        <line x1="{40*0}" y1="20" x2="{40*pickup_end}" y2="20" stroke="black" stroke-width="6"/>
-                        <line x1="{40*off_duty_at}" y1="20" x2="960" y2="20" stroke="black" stroke-width="6"/>
-                        
-                        <!-- Line 2: Sleeper Berth (not used) -->
-                        
-                        <!-- Line 3: Driving -->
-                        <line x1="{40*driving_start}" y1="80" x2="{40*driving_end}" y2="80" stroke="#0066cc" stroke-width="8"/>
-                        
-                        <!-- Line 4: On Duty Not Driving -->
-                        <line x1="{40*pickup_end}" y1="140" x2="{40*driving_start}" y2="140" stroke="#ff9900" stroke-width="8"/>
-                        <!-- 30-min break if needed -->
-                        {f'<line x1="{40*break_at}" y1="140" x2="{40*(break_at+0.5)}" y2="140" stroke="#ff9900" stroke-width="8"/>' if break_inserted else ''}
-                    </svg>
+                    <svg viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid meet">
+                        <!-- 4 Official Horizontal Lines -->
+                        <line x1="0" y1="80"  x2="1200" y2="80"  stroke="#ccc" stroke-width="3"/>  <!-- Line 1: Off Duty -->
+                        <line x1="0" y1="160" x2="1200" y2="160" stroke="#ccc" stroke-width="3"/>  <!-- Line 2: Sleeper Berth -->
+                        <line x1="0" y1="240" x2="1200" y2="240" stroke="#ccc" stroke-width="3"/>  <!-- Line 3: Driving -->
+                        <line x1="0" y1="320" x2="1200" y2="320" stroke="#ccc" stroke-width="3"/>  <!-- Line 4: On Duty ND -->
 
-                    <div class="legend">
-                        <span><strong>Line 1:</strong> Off Duty</span> |
-                        <span><strong>Line 3:</strong> Driving</span> |
-                        <span><strong>Line 4:</strong> On Duty (Not Driving)</span>
-                    </div>
+                        <!-- Vertical grid -->
+                        <g stroke="#ddd" stroke-width="1">
+                            {"".join(f'<line x1="{50*i}" y1="40" x2="{50*i}" y2="360"/>' for i in range(25))}
+                        </g>
+
+                        <!-- ACTUAL DUTY STATUS LINES (THICK & COLORED) -->
+                        <!-- Line 1: Off Duty (Black) -->
+                        <line x1="0" y1="80" x2="{50*pickup_end}" y2="80" stroke="black" stroke-width="12"/>
+                        <line x1="{50*off_duty_at}" y1="80" x2="1200" y2="80" stroke="black" stroke-width="12"/>
+
+                        <!-- Line 2: Sleeper Berth (Gray) — NOT USED IN THIS PLAN -->
+                        <!-- (Left empty — correct for property-carrying) -->
+
+                        <!-- Line 3: Driving (Blue) -->
+                        <line x1="{50*driving_start}" y1="240" x2="{50*driving_end}" y2="240" stroke="#0066cc" stroke-width="14"/>
+
+                        <!-- Line 4: On Duty Not Driving (Orange) -->
+                        <line x1="{50*pickup_end}" y1="320" x2="{50*driving_start}" y2="320" stroke="#ff9900" stroke-width="14"/>
+                        {f'<line x1="{50*break_at}" y1="320" x2="{50*(break_at + 0.5)}" y2="320" stroke="#ff9900" stroke-width="14"/>' if break_inserted else ''}
+
+                        <!-- Legend -->
+                        <text x="20" y="390" font-size="18" fill="#000" font-weight="bold">
+                            Line 1: Off Duty | Line 2: Sleeper Berth | Line 3: Driving | Line 4: On Duty (Not Driving)
+                        </text>
+                    </svg>
                 </div>
 
                 <table class="totals">
-                    <tr><td>Total Miles Driven Today:</td><td>~{int(trip.total_distance_miles / trip.hos_plan['total_days_needed'])} mi</td></tr>
-                    <tr><td>Driving Today:</td><td>{day['driving_hours']} hours</td></tr>
-                    <tr><td>On Duty Today:</td><td>{day['on_duty_hours']} hours</td></tr>
-                    <tr><td>Remarks:</td><td>{'30-min break taken' if day.get('includes_30min_break') else ''} {'| Fuel stop' if day.get('fuel_stop') else ''}</td></tr>
+                    <tr><td>Total Miles Today:</td><td>~{int(trip.total_distance_miles / trip.hos_plan['total_days_needed'])} mi</td></tr>
+                    <tr><td>Driving:</td><td>{day['driving_hours']} hours</td></tr>
+                    <tr><td>On Duty:</td><td>{day['on_duty_hours']} hours</td></tr>
+                    <tr><td>Remarks:</td><td>
+                        {'30-minute break taken' if break_inserted else 'None'}
+                        {', Fuel stop' if day.get('fuel_stop') else ''}
+                    </td></tr>
                 </table>
 
                 <div class="signature">
-                    <p>I certify that this log is true and correct.</p>
+                    <p>I certify this log is true and correct.</p>
                     <p>Driver Signature: _________________________________________ Date: __________</p>
                 </div>
-                <div class="page-break"></div>
             </div>
             """
-        
-        full_css = """
+
+        css = """
         <style>
-            @page { size: Letter; margin: 0.5in; }
-            body { font-family: Arial, sans-serif; margin: 0; background: #f9f9f9; }
-            .log-page { background: white; padding: 30px; margin: 20px auto; width: 8.5in; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
-            .header { text-align: center; border-bottom: 4px solid #003366; padding-bottom: 10px; margin-bottom: 20px; }
-            .header h2 { margin: 0; color: #003366; font-size: 20px; }
-            .subtitle { margin: 5px 0; color: #003366; font-weight: bold; }
-            .info-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-            .info-table td { padding: 8px; border: 1px solid #000; background: #f0f0f0; }
-            .graph-grid { margin: 30px 0; border: 3px solid black; background: white; position: relative; }
-            .hours-labels { position: absolute; top: -20px; left: 40px; }
-            .hour { position: absolute; font-size: 10px; width: 40px; text-align: center; }
-            .legend { text-align: center; margin: 10px 0; font-size: 14px; }
-            .totals { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            .totals td { padding: 10px; border: 1px solid black; }
-            .signature { margin-top: 50px; text-align: center; font-size: 14px; }
-            .page-break { page-break-after: always; }
-            @media print { body { background: white; } .page-break { page-break-after: always; } }
-            button { position: fixed; top: 20px; right: 20px; padding: 15px 30px; background: #003366; color: white; font-size: 18px; border: none; cursor: pointer; z-index: 1000; }
+            @page { size: landscape letter; margin: 0.5in; }
+            body { font-family: Arial, sans-serif; margin: 0; background: #f8f9fa; }
+            .log-page { background: white; padding: 40px; margin: 20px auto; max-width: 11in; box-shadow: 0 5px 25px rgba(0,0,0,0.15); page-break-after: always; }
+            .fmsca-header { text-align: center; border-bottom: 6px solid #002856; padding: 20px; background: #002856; color: white; margin-bottom: 30px; }
+            .fmsca-header h1 { margin: 0; font-size: 32px; }
+            .rule { font-size: 18px; margin: 10px 0; }
+            .info-grid { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 15px; }
+            .info-grid td { padding: 12px; border: 2px solid #333; }
+            .info-grid .label { background: #e3f2fd; font-weight: bold; width: 28%; }
+            .underline { border-bottom: 2px solid #000; display: inline-block; width: 95%; }
+            .graph-container { position: relative; width: 1200px; margin: 40px auto; }
+            .hour-labels { position: absolute; top: -35px; width: 1200px; }
+            .hour-labels span { position: absolute; font-weight: bold; font-size: 14px; transform: translateX(-50%); }
+            svg { border: 5px solid black; background: white; width: 1200px; height: 400px; }
+            .totals { width: 70%; margin: 30px auto; border-collapse: collapse; font-size: 18px; }
+            .totals td { padding: 15px; border: 2px solid black; }
+            .totals td:first-child { background: #f0f0f0; font-weight: bold; }
+            .signature { margin-top: 60px; text-align: center; font-size: 18px; }
+            button { position: fixed; top: 20px; right: 40px; padding: 20px 50px; background: #002856; color: white; font-size: 22px; border: none; border-radius: 10px; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+            @media print { button { display: none; } body { background: white; } }
         </style>
         """
 
@@ -217,12 +226,12 @@ class TripViewSet(viewsets.ModelViewSet):
         <html>
         <head>
             <meta charset="utf-8">
-            <title>FMCSA Logs - {str(trip.id)[:8]}</title>
-            {full_css}
+            <title>FMCSA Official Logs</title>
+            {css}
         </head>
         <body>
             <button onclick="window.print()">PRINT ALL LOGS</button>
-            <h1 style="text-align:center; color:#003366; margin:30px;">OFFICIAL FMCSA DAILY LOGS</h1>
+            <h1 style="text-align:center; color:#002856; margin:50px 0; font-size:40px;">OFFICIAL FMCSA DAILY LOGS</h1>
             {logs_html}
         </body>
         </html>
