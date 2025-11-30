@@ -6,7 +6,7 @@ class TripSerializer(serializers.ModelSerializer):
         model = Trip
         fields = [
             'id', 'current_location', 'pickup_location', 'dropoff_location',
-            'cycle_used_hours', 'total_distance_miles', 'total_driving_hours',
+            'cycle_used_hours', 'total_distance_miles', 'total_driving_hours', 'route_raw',
             'route_summary', 'hos_plan', 'created_at', 'status'
         ]
         read_only_fields = ['id', 'total_distance_miles', 'total_driving_hours', 'route_summary', 'hos_plan', 'created_at', 'status']

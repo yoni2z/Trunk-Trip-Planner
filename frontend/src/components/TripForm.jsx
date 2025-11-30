@@ -65,8 +65,12 @@ export default function TripForm() {
 
       if (response.ok) {
         console.log("Success:", data);
+
+        const tripId = data.trip_id.toLowerCase();
+        window.location.href = `/results/${tripId}`;
+
         setSubmitted(true);
-        setSubmitMessage(`Trip ID: ${data.trip_id} – ${data.message}`);
+        setSubmitMessage("Generating your FMCSA-compliant trip plan...");
       } else {
         setErrors({ submit: data.message || "Server error" });
       }

@@ -7,6 +7,8 @@ from .services.hos_planner import plan_hos_compliant_trip
 from datetime import datetime
 from decimal import Decimal
 import json
+import logging
+logger = logging.getLogger(__name__)
 
 import os
 from rest_framework.decorators import action
@@ -45,12 +47,26 @@ class TripViewSet(viewsets.ModelViewSet):
 
         # Get route
         route_data = get_truck_route(coords)
-        if not route_data or 'routes' not in route_data:
-            return Response({"message": "Route calculation failed"}, 
-                          status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        if not route_data or ('routes' not in route_data and 'features' not in route_data):
+            logger.exception(f"Route failed: {route_data}")
+            return Response({"message": "Route calculation failed"}, status=500)
 
-        route = route_data['routes'][0]
-        summary = route['summary']
+        # Extract routes safely
+        # SAFE: Handle BOTH old + geojson formats
+        if 'routes' in route_data:
+            # Old JSON format
+            route = route_data['routes'][0]
+            summary = route['summary']
+
+        elif 'features' in route_data:
+            # GeoJSON format (what you're actually using)
+            feature = route_data['features'][0]
+            summary = feature['properties']['summary']
+
+        else:
+            logger.error(f"Invalid ORS response format: {route_data}")
+            return Response({"message": "Invalid route format"}, status=500)
+
         total_miles = Decimal(summary['distance'])
         total_hours = Decimal(summary['duration']) / 3600
 
@@ -87,7 +103,7 @@ class TripViewSet(viewsets.ModelViewSet):
             status="route_calculated"
         )
 
-        total_driving_seconds = route['summary']['duration']  # this is in seconds
+        total_driving_seconds = int(summary['duration'])
 
         # Run HOS planner
         hos_result = plan_hos_compliant_trip(
@@ -102,7 +118,7 @@ class TripViewSet(viewsets.ModelViewSet):
         trip.save()
 
         return Response({
-            "trip_id": str(trip.id)[:8].upper(),
+            "trip_id": str(trip.id),
             "message": "Route calculated successfully!",
             "route": route_summary_clean,
             "hos": hos_result
