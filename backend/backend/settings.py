@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-mzt!2yc245tv!@ck=&%ihqgx!)w#_2%_w2%3)0*r&_t-2em(ig
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["trunk-trip-planner-2.onrender.com"]
+ALLOWED_HOSTS = ["trunk-trip-planner-3.onrender.com"]
 
 
 # Application definition
