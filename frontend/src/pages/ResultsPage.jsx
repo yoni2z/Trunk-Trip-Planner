@@ -22,7 +22,7 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`http://127.0.0.1:8000/api/trips/${id}/`)
+    fetch(`https://trunk-trip-planner-3.onrender.com/api/trips/${id}/`)
       .then((r) => r.json())
       .then((data) => {
         setTrip(data);
@@ -103,7 +103,7 @@ export default function ResultsPage() {
 
         <div className="text-center">
           <a
-            href={`http://127.0.0.1:8000/api/trips/${id}/logs/`}
+            href={`https://trunk-trip-planner-3.onrender.com/api/trips/${id}/logs/`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block px-24 py-12 bg-gradient-to-r from-indigo-800 to-purple-900 text-white text-5xl font-bold rounded-3xl shadow-3xl hover:shadow-4xl transform hover:scale-110 transition-all duration-300"

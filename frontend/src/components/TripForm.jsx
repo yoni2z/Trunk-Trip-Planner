@@ -48,18 +48,21 @@ export default function TripForm() {
     setSubmitted(false);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/trips/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          current_location: formData.currentLocation,
-          pickup_location: formData.pickupLocation,
-          dropoff_location: formData.dropoffLocation,
-          cycle_used_hours: parseFloat(formData.cycleUsed),
-        }),
-      });
+      const response = await fetch(
+        "https://trunk-trip-planner-3.onrender.com/api/trips/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            current_location: formData.currentLocation,
+            pickup_location: formData.pickupLocation,
+            dropoff_location: formData.dropoffLocation,
+            cycle_used_hours: parseFloat(formData.cycleUsed),
+          }),
+        }
+      );
 
       const data = await response.json();
 
